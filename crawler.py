@@ -1,4 +1,5 @@
 import time
+import platform
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.firefox.options import Options
@@ -6,6 +7,8 @@ from bs4.element import Tag
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from tabulate import tabulate
+import json
+import argparse
 
 
 def get_soup(url):
@@ -17,9 +20,13 @@ def get_soup(url):
 
 
 def get_driver(url):
+    os_type = platform.system()
+    executable_path = './geckodriver'
+    if os_type == 'Windows':
+        executable_path += '.exe'
     options = Options()
     options.add_argument("--headless")
-    driver = webdriver.Firefox(executable_path='./geckodriver', options=options)
+    driver = webdriver.Firefox(executable_path=executable_path, options=options)
     driver.get(url)
     return driver
 
@@ -139,5 +146,35 @@ def console_ui():
         print('Không tìm thấy mã học phần vừa nhập!')
 
 
+def write_file(file_name, course_id):
+    course_info = get_course_info(course_id)
+    with open(file_name, "w") as outfile:
+        json.dump(course_info, outfile, indent=4, ensure_ascii=False)
+    outfile.close()
+
+
+def write_terminal(course_id):
+    course_info = get_course_info(course_id)
+    json_string = json.dumps(course_info, indent=4, ensure_ascii=False)
+    print(json_string)
+
+
 if __name__ == '__main__':
-    console_ui()
+    # Initialize parser
+    parser = argparse.ArgumentParser()
+
+    # Adding optional argument
+    parser.add_argument("-o", "--Output", help="Output file name")
+
+    parser.add_argument("-s", "--Subject", help="Subject id")
+
+    parser.add_argument("-t", "--Terminal", help="Show output on the terminal", required=False, action="store_true")
+    # Read arguments from command line
+    args = parser.parse_args()
+
+    if args.Terminal:
+        console_ui()
+    elif args.Output and args.Subject:
+        write_file(args.Output, args.Subject)
+    elif args.Subject:
+        write_terminal(args.Subject)
